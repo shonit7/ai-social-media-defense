@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Defense Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Vis.js for Network Graphs -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-start: #000000;
+            --bg-end: #0a1128;
+            --card-bg: rgba(16, 24, 39, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --neon-green: #00ff66;
+            --neon-green-glow: rgba(0, 255, 102, 0.3);
+            --neon-blue: #00e1ff;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --danger: #ff3333;
+            --warning: #ffb800;
+            --spam: #ff00ff;
+        }
+
+        body.light-mode {
+            --bg-start: #f1f5f9;
+            --bg-end: #cbd5e1;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --card-border: rgba(0, 0, 0, 0.1);
+            --text-main: #1e293b;
+            --text-muted: #475569;
+            --neon-green: #059669; 
+            --neon-green-glow: rgba(5, 150, 105, 0.2);
+            --neon-blue: #0284c7;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --spam: #d946ef;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background: linear-gradient(145deg, var(--bg-start) 0%, var(--bg-end) 100%); background-attachment: fixed; color: var(--text-main); min-height: 100vh; line-height: 1.6; transition: background 0.4s ease, color 0.4s ease; }
+        
+        nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--card-border); position: sticky; top: 0; z-index: 100; transition: background 0.4s ease; }
+        body.light-mode nav { background: rgba(255, 255, 255, 0.7); }
+        .nav-logo { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 12px; background: linear-gradient(90deg, var(--neon-green), var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.5px; }
+        .nav-logo i { -webkit-text-fill-color: var(--neon-green); }
+        
+        .theme-toggle { background: transparent; border: 1px solid var(--card-border); color: var(--text-main); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; }
+        .theme-toggle:hover { background: rgba(128, 128, 128, 0.2); transform: scale(1.05); }
+
+        .hero { text-align: center; padding: 70px 20px 40px; }
+        .hero h1 { font-size: 3.2rem; font-weight: 700; margin-bottom: 15px; letter-spacing: -1px; }
+        .hero p { font-size: 1.2rem; color: var(--text-muted); max-width: 700px; margin: 0 auto; }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
+
+        .glass-card { background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--card-border); border-radius: 20px; padding: 35px; margin-bottom: 30px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.4s ease; }
+        body.light-mode .glass-card { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); }
+        .glass-card:hover { transform: translateY(-5px); box-shadow: 0 15px 50px rgba(0, 255, 102, 0.05); border-color: rgba(0, 255, 102, 0.2); }
+        body.light-mode .glass-card:hover { box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1); border-color: var(--neon-blue); }
+        
+        .glass-card h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; color: var(--text-main); }
+        .glass-card h2 i { color: var(--neon-blue); }
+
+        textarea { width: 100%; height: 140px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); border-radius: 12px; padding: 20px; font-size: 1.05rem; resize: vertical; margin-bottom: 20px; transition: all 0.3s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        body.light-mode textarea { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0,0,0,0.2); box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); }
+        textarea:focus { outline: none; border-color: var(--neon-green); box-shadow: inset 0 2px 10px rgba(0,0,0,0.5), 0 0 15px var(--neon-green-glow); }
+        
+        .button-group { display: flex; gap: 15px; }
+        button { border: none; padding: 15px 30px; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-primary { background: linear-gradient(90deg, var(--neon-green), #00cc52); color: #000000; flex: 2; box-shadow: 0 4px 15px var(--neon-green-glow); }
+        body.light-mode .btn-primary { color: #ffffff; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 255, 102, 0.5); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; box-shadow: none !important; background: #334155; color: #94a3b8; }
+
+        .sample-select { background: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--card-border); border-radius: 12px; padding: 0 20px; font-size: 1rem; cursor: pointer; outline: none; flex: 1; transition: all 0.3s ease; }
+        .sample-select option { background: #0f172a; color: white; }
+        body.light-mode .sample-select { background: rgba(255, 255, 255, 0.8); border-color: rgba(0,0,0,0.2); }
+        body.light-mode .sample-select option { background: #ffffff; color: #000000; }
+
+        /* Loader */
+        .loader-container { display: none; flex-direction: column; align-items: center; padding: 50px 0; text-align: center; }
+        .ai-spinner { width: 70px; height: 70px; border: 4px solid rgba(0, 255, 102, 0.1); border-top-color: var(--neon-green); border-right-color: var(--neon-blue); border-radius: 50%; animation: spin 1s linear infinite, pulseGlow 2s ease-in-out infinite; margin-bottom: 25px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 15px var(--neon-green-glow); } 50% { box-shadow: 0 0 35px rgba(0, 225, 255, 0.4); } }
+        .loader-text { background: linear-gradient(90deg, var(--neon-green), var(--neon-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.4rem; font-weight: 600; margin-bottom: 10px; }
+
+        #results-section { display: none; }
+
+        /* Defense Banners */
+        .defense-banner { display: flex; align-items: center; gap: 20px; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; background: rgba(255,255,255,0.05); border: 2px solid; transition: all 0.3s ease; }
+        .defense-allow { border-color: var(--neon-green); background: rgba(0,255,102,0.1); color: var(--neon-green); box-shadow: 0 0 15px var(--neon-green-glow); }
+        .defense-flagged { border-color: var(--warning); background: rgba(255,184,0,0.1); color: var(--warning); }
+        .defense-quarantined { border-color: var(--spam); background: rgba(255,0,255,0.1); color: var(--spam); box-shadow: 0 0 15px rgba(255,0,255,0.2); }
+        .defense-blocked { border-color: var(--danger); background: rgba(255,51,51,0.2); color: var(--danger); box-shadow: 0 0 15px rgba(255,51,51,0.3); }
+        .action-icon { font-size: 2.2rem; }
+
+        /* Clusters & Networks */
+        .cluster-alert { background: rgba(255, 0, 255, 0.15); border-left: 4px solid var(--spam); padding: 15px 20px; border-radius: 0 12px 12px 0; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; color: #ffb3ff; }
+        body.light-mode .cluster-alert { background: rgba(255,0,255,0.1); color: #c026d3; border-color: #c026d3;}
+
+        .network-container { width: 100%; height: 350px; background: #000; border: 1px solid var(--card-border); border-radius: 12px; margin-top: 15px; overflow: hidden;}
+        body.light-mode .network-container { background: #f8fafc; border-color: rgba(0,0,0,0.1); }
+        
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+        @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+        
+        .dash-panel { background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; }
+        body.light-mode .dash-panel { background: rgba(255,255,255,0.7); }
+
+        .bot-fingerprint { margin-top: 15px; padding: 15px; border-radius: 8px; background: rgba(255,184,0,0.1); border-left: 3px solid var(--warning); }
+        
+        .fact-check-box { background: rgba(0, 225, 255, 0.1); border: 1px solid rgba(0, 225, 255, 0.3); padding: 15px 20px; border-radius: 8px; margin-top: 20px; color: #e0f7fa; }
+        body.light-mode .fact-check-box { background: rgba(2, 132, 199, 0.1); border-color: rgba(2, 132, 199, 0.3); color: #0284c7; }
+
+        .css-chart { display: flex; justify-content: space-around; align-items: flex-end; height: 120px; padding-bottom: 30px; position: relative; border-bottom: 1px solid rgba(255,255,255,0.1); margin-top: 20px;}
+        .chart-col { display: flex; flex-direction: column; align-items: center; width: 60px; position: relative; }
+        .chart-bar { width: 30px; height: 100px; background: rgba(255,255,255,0.05); border-radius: 6px 6px 0 0; display: flex; align-items: flex-end; overflow: hidden; }
+        .chart-fill { width: 100%; border-radius: 6px 6px 0 0; transition: height 1s; position: relative; }
+        .chart-col span { position: absolute; bottom: -25px; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+        
+        /* Animation Utility */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeUp 0.6s forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; }
+
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-logo"><i class="fas fa-shield-halved"></i> Defense Platform API</div>
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-sun" id="theme-icon"></i></button>
+    </nav>
+
+    <header class="hero">
+        <h1>AI Fake News & Botnet Defense</h1>
+        <p>Full-Stack platform analyzing text mutations, spam behavior, and simulating attack networks.</p>
+    </header>
+
+    <main class="container">
+        <!-- Input Section -->
+        <div class="glass-card animate-in">
+            <h2><i class="fas fa-radar"></i> Global Threat Monitoring Network</h2>
+            
+            <!-- Live Feed UI -->
+            <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;">
+                <div style="font-size: 0.85rem; color: var(--neon-green); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;"><i class="fas fa-circle fa-fade"></i> Live Intercept Stream</div>
+                <div id="live-tweet-display" style="font-style: italic; color: #cbd5e1; min-height: 60px;">Waiting for data stream...</div>
+            </div>
+            
+            <div class="button-group" style="margin-bottom: 25px;">
+                <button id="stream-btn" class="btn-primary" onclick="toggleStream()">
+                    <i class="fas fa-satellite-dish"></i> Start Live Feed
+                </button>
+            </div>
+
+            <!-- Manual Override UI -->
+            <div style="border-top: 1px solid var(--card-border); padding-top: 25px;">
+                <h3 style="font-size: 1rem; margin-bottom: 15px; color: var(--text-muted);"><i class="fas fa-keyboard"></i> Manual Intercept Override</h3>
+                <textarea id="tweet-input" placeholder="Paste custom intercepted text here for deep backend analysis..."></textarea>
+                
+                <div class="button-group">
+                    <button id="analyze-btn" class="btn-primary" onclick="analyzeManualTweet()" style="flex: 1; background: linear-gradient(90deg, var(--neon-blue), #0284c7); box-shadow: 0 4px 15px rgba(0, 225, 255, 0.3);">
+                        <i class="fas fa-search"></i> Analyze Manual Input
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card loader-container" id="loader">
+            <div class="ai-spinner"></div>
+            <div class="loader-text">Querying Backend ML Engine...</div>
+            <p style="color: var(--text-muted);">Generating Network Spread Graphs & DB Clustering</p>
+        </div>
+
+        <!-- Results Section -->
+        <div class="glass-card" id="results-section">
+            
+            <div class="defense-banner animate-in delay-1" id="defense-action-banner">
+                <div class="action-icon" id="defense-icon"><i class="fas fa-shield"></i></div>
+                <div class="action-text">
+                    <div style="font-size: 0.85rem; opacity: 0.8; text-transform: uppercase;">Real-Time Defense Firewall</div>
+                    <div id="defense-action-text" style="font-size: 1.6rem; font-weight: 700;">SAFE : ALLOW</div>
+                </div>
+            </div>
+
+            <div class="cluster-alert animate-in delay-1" id="cluster-alert" style="display: none;">
+                <i class="fas fa-network-wired"></i>
+                <div>
+                    <strong>Deepfake Mutation Cluster Detected</strong>
+                    <div id="cluster-id-text" style="font-size: 0.85rem; opacity: 0.8;">Matched with existing DB threat family.</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid animate-in delay-1">
+                <!-- Panel 1: Trust Metrics -->
+                <div class="dash-panel">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fas fa-chart-pie"></i> Threat Distribution</h3>
+                    <div style="font-weight: bold; font-size: 1.2rem; margin-bottom: 5px;">Classification: <span id="entity-class" style="color:var(--neon-green)">HUMAN</span></div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">Overall Trust: <span id="trust-val">100%</span></div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">Emotion Vector: <span id="emotion-val" style="color:var(--neon-blue); font-weight:bold;">Neutral</span></div>
+                    
+                    <div id="bot-fingerprint" class="bot-fingerprint" style="display: none;">
+                        <strong><i class="fas fa-robot"></i> Bot Personality Fingerprint:</strong><br>
+                        <span id="bot-type-text">None</span>
+                    </div>
+
+                    <div class="css-chart">
+                        <div class="chart-col">
+                            <div class="chart-bar"><div class="chart-fill" id="c-fake" style="height:0%; background: var(--danger)"></div></div>
+                            <span>Fake</span>
+                        </div>
+                        <div class="chart-col">
+                            <div class="chart-bar"><div class="chart-fill" id="c-bot" style="height:0%; background: var(--warning)"></div></div>
+                            <span>Bot</span>
+                        </div>
+                        <div class="chart-col">
+                            <div class="chart-bar"><div class="chart-fill" id="c-spam" style="height:0%; background: var(--spam)"></div></div>
+                            <span>Spam</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 2: Network Graph -->
+                <div class="dash-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <h3 style="font-size: 1.1rem;"><i class="fas fa-share-nodes"></i> Spread Simulation Map</h3>
+                        <div style="font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; cursor: pointer;" onclick="toggleNetworkView()">
+                            <i class="fas fa-exchange-alt"></i> <span id="network-toggle-text">View Uncontained</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Intensity: <strong id="spread-intensity-val" style="color:var(--danger)">High</strong></span>
+                        <span>Viral Reach: <strong id="reach-val">~0</strong></span>
+                    </div>
+                    <div style="font-size: 0.85rem; display: flex; justify-content: space-between;">
+                        <span>Predictive modeling of propagation.</span>
+                        <span style="color: var(--neon-blue); font-weight: bold;">Containment Effect: <span id="containment-val">0%</span></span>
+                    </div>
+                    <div id="network-graph" class="network-container"></div>
+                </div>
+            </div>
+
+            <!-- Truth Injection / Auto Reply -->
+            <div class="fact-check-box animate-in delay-2" id="fact-check-box" style="display: none; background: rgba(0, 0, 0, 0.4); border-left: 4px solid var(--neon-blue); border-top: none; border-right: none; border-bottom: none; border-radius: 0 8px 8px 0;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <div style="width: 30px; height: 30px; background: var(--neon-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000;"><i class="fas fa-robot"></i></div>
+                    <div>
+                        <div style="font-weight: bold; color: var(--neon-blue); font-size: 0.95rem;">@DefenseNet_AutoReply</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">AI Truth Injection Module</div>
+                    </div>
+                </div>
+                <div id="fact-check-content" style="font-size: 0.95rem; color: #e2e8f0;"></div>
+            </div>
+            
+        </div>
+
+        <!-- Enterprise Metrics Section -->
+        <div class="dashboard-grid animate-in delay-2" style="margin-top: 25px;">
+            <div class="dash-panel">
+                <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fas fa-chart-line"></i> Historical Threat Volume</h3>
+                <div style="position: relative; height: 200px; width: 100%;">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+            <div class="dash-panel" style="overflow-y: auto; max-height: 250px;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fas fa-list-ul"></i> Live SOC Event Log</h3>
+                <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                            <th style="padding: 8px;">Time</th>
+                            <th style="padding: 8px;">Threat</th>
+                            <th style="padding: 8px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="soc-log-body">
+                        <!-- Rows added dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- War Room Incidents -->
+        <div class="glass-card animate-in delay-2" style="margin-top: 25px;">
+            <h2 style="color: var(--danger)"><i class="fas fa-biohazard"></i> WAR ROOM: Active Threat Incidents</h2>
+            <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">Tracking coordinated misinformation campaigns based on deepfake mutation clustering.</div>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: var(--text-muted);">
+                            <th style="padding: 12px;">Incident ID</th>
+                            <th style="padding: 12px;">Correlated Posts</th>
+                            <th style="padding: 12px;">Severity</th>
+                            <th style="padding: 12px;">Last Active</th>
+                            <th style="padding: 12px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="war-room-body">
+                        <!-- War Room Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const icon = document.getElementById('theme-icon');
+            if(document.body.classList.contains('light-mode')) {
+                icon.classList.replace('fa-sun', 'fa-moon');
+            } else {
+                icon.classList.replace('fa-moon', 'fa-sun');
+            }
+        }
+
+        let streamInterval = null;
+        let isStreaming = false;
+        let threatVolumeChart = null;
+        let lastNetworkData = null;
+        let isShowingUncontained = false;
+
+        function toggleNetworkView() {
+            if(!lastNetworkData) return;
+            isShowingUncontained = !isShowingUncontained;
+            const btnText = document.getElementById('network-toggle-text');
+            btnText.innerText = isShowingUncontained ? "View AI Contained" : "View Uncontained";
+            renderNetworkGraph();
+        }
+
+        function renderNetworkGraph() {
+            if(!lastNetworkData) return;
+            const container = document.getElementById('network-graph');
+            const dataToRender = isShowingUncontained ? lastNetworkData.uncontained : lastNetworkData.contained;
+            
+            const graphData = {
+                nodes: new vis.DataSet(dataToRender.nodes),
+                edges: new vis.DataSet(dataToRender.edges)
+            };
+            const options = {
+                nodes: { font: { color: document.body.classList.contains('light-mode') ? '#000' : '#fff' } },
+                edges: { color: { color: 'rgba(150,150,150,0.5)' }, arrows: 'to' },
+                physics: { stabilization: true, barnesHut: { springLength: 70 } }
+            };
+            new vis.Network(container, graphData, options);
+        }
+
+        // Initialize Chart.js & Fetch War Room
+        window.onload = () => {
+            const ctx = document.getElementById('volumeChart').getContext('2d');
+            Chart.defaults.color = '#94a3b8';
+            threatVolumeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['T-5', 'T-4', 'T-3', 'T-2', 'T-1', 'Now'],
+                    datasets: [{
+                        label: 'Threat Severity',
+                        data: [10, 25, 15, 85, 10, 5],
+                        borderColor: '#00e1ff',
+                        backgroundColor: 'rgba(0, 225, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+            fetchIncidents();
+        };
+
+        async function fetchIncidents() {
+            try {
+                const response = await fetch('/api/incidents');
+                if(!response.ok) return;
+                const data = await response.json();
+                const tbody = document.getElementById('war-room-body');
+                let html = '';
+                data.forEach(inc => {
+                    const isCritical = inc.severity_score > 80;
+                    html += `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); background: ${isCritical ? 'rgba(255,51,51,0.05)' : 'transparent'};">
+                        <td style="padding: 12px; font-weight: bold; color: var(--spam);">${inc.cluster_id}</td>
+                        <td style="padding: 12px;">${inc.tweet_count} items</td>
+                        <td style="padding: 12px; color: ${isCritical ? 'var(--danger)' : 'var(--warning)'};">${isCritical ? 'Critical' : 'High'}</td>
+                        <td style="padding: 12px; color: var(--text-muted);">${inc.last_active}</td>
+                        <td style="padding: 12px;"><span style="background: rgba(0,255,102,0.1); color: var(--neon-green); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">Contained</span></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            } catch(e) { console.error(e); }
+        }
+
+        async function toggleStream() {
+            const btn = document.getElementById('stream-btn');
+            isStreaming = !isStreaming;
+            
+            if (isStreaming) {
+                btn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Live Feed';
+                btn.style.background = 'linear-gradient(90deg, #ff3333, #cc0000)';
+                btn.style.boxShadow = '0 4px 15px rgba(255,51,51,0.5)';
+                fetchNextTweet();
+                streamInterval = setInterval(fetchNextTweet, 5000); // Fetch every 5s
+            } else {
+                clearInterval(streamInterval);
+                btn.innerHTML = '<i class="fas fa-satellite-dish"></i> Start Live Feed';
+                btn.style.background = 'linear-gradient(90deg, var(--neon-green), #00cc52)';
+                btn.style.boxShadow = '0 4px 15px var(--neon-green-glow)';
+            }
+        }
+
+        async function fetchNextTweet() {
+            try {
+                document.getElementById('loader').style.display = 'flex';
+                document.getElementById('results-section').style.display = 'none';
+                
+                const response = await fetch('/api/stream');
+                if (!response.ok) throw new Error("Stream failed");
+                const data = await response.json();
+                
+                if (data.text) {
+                    document.getElementById('live-tweet-display').innerText = `"${data.text}"`;
+                    await analyzeTweet(data.text);
+                }
+            } catch (e) {
+                console.error(e);
+                if (isStreaming) toggleStream(); // stop if error
+                alert("Failed to fetch stream. Is server.py running?");
+            }
+        }
+
+        async function analyzeManualTweet() {
+            const text = document.getElementById('tweet-input').value.trim();
+            if (!text) { alert("Please enter text."); return; }
+            
+            if (isStreaming) {
+                toggleStream();
+            }
+
+            const btn = document.getElementById('analyze-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
+            
+            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('results-section').style.display = 'none';
+
+            // Update War Room & Logic
+            await analyzeTweet(text);
+            fetchIncidents();
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search"></i> Analyze Manual Input';
+        }
+
+        async function analyzeTweet(text) {
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if(!response.ok) throw new Error("Backend connection failed.");
+                
+                const data = await response.json();
+                renderResults(data);
+                fetchIncidents(); // Update War Room on live feed too
+                
+            } catch (error) {
+                console.error(error);
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        function renderResults(data) {
+            document.getElementById('results-section').style.display = 'block';
+
+            // Defense Banner
+            const banner = document.getElementById('defense-action-banner');
+            banner.className = `defense-banner animate-in delay-1 ${data.actionClass}`;
+            document.getElementById('defense-action-text').innerText = data.actionText;
+            
+            let icon = "fa-check-circle";
+            if(data.actionClass.includes("blocked")) icon = "fa-ban";
+            else if(data.actionClass.includes("quarantine")) icon = "fa-box-open";
+            else if(data.actionClass.includes("flagged")) icon = "fa-flag";
+            document.getElementById('defense-icon').innerHTML = `<i class="fas ${icon}"></i>`;
+
+            // Cluster Alert
+            const clusterAlert = document.getElementById('cluster-alert');
+            if(data.isCluster) {
+                clusterAlert.style.display = 'flex';
+                document.getElementById('cluster-id-text').innerText = `Matched Family: ${data.clusterId} | High threat coordinated spread detected.`;
+            } else {
+                clusterAlert.style.display = 'none';
+            }
+
+            // Stats
+            document.getElementById('entity-class').innerText = data.classification;
+            document.getElementById('entity-class').style.color = data.classification === "HUMAN" ? "var(--neon-green)" : (data.classification === "BOT ENTITY" ? "var(--warning)" : "var(--danger)");
+            document.getElementById('trust-val').innerText = `${data.trustScore}%`;
+            document.getElementById('emotion-val').innerText = data.emotion || "Neutral";
+            
+            // Bot Fingerprint
+            const fp = document.getElementById('bot-fingerprint');
+            if(data.botType) {
+                fp.style.display = 'block';
+                document.getElementById('bot-type-text').innerText = data.botType;
+            } else {
+                fp.style.display = 'none';
+            }
+
+            // Charts
+            setTimeout(() => {
+                document.getElementById('c-fake').style.height = `${data.fakeScore}%`;
+                document.getElementById('c-bot').style.height = `${data.botScore}%`;
+                document.getElementById('c-spam').style.height = `${data.spamScore}%`;
+            }, 100);
+
+            // Network Metrics
+            document.getElementById('containment-val').innerText = `${data.containmentEffect || 0}%`;
+            document.getElementById('spread-intensity-val').innerText = data.spreadIntensity || "Low";
+            document.getElementById('reach-val').innerText = `~${(data.estimatedViralReach || 0).toLocaleString()}`;
+            
+            // Fact Checks Auto Reply Counter-Attack
+            const factBox = document.getElementById('fact-check-box');
+            if(data.factChecks && data.factChecks.length > 0) {
+                let html = '';
+                data.factChecks.forEach(f => { 
+                    html += `
+                    <div style="margin-bottom: 15px; border-bottom: 1px solid rgba(0,225,255,0.2); padding-bottom: 10px;">
+                        <div style="font-size: 0.85rem; color: #ff6b6b; font-style: italic; border-left: 2px solid #ff6b6b; padding-left: 8px; margin-bottom: 8px;">
+                            Flagged snippet: "${f.misleadingQuote}"
+                        </div>
+                        <div style="font-size: 0.95rem; margin-bottom: 5px;">
+                            <i class="fas fa-shield-check"></i> <strong>Correction:</strong> ${f.counterMessage}
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--neon-blue); font-weight: bold; text-align: right;">
+                            AI Confidence: ${f.confidenceScore}%
+                        </div>
+                    </div>`; 
+                });
+                document.getElementById('fact-check-content').innerHTML = html;
+                factBox.style.display = 'block';
+            } else {
+                factBox.style.display = 'none';
+            }
+
+            // Network Graph Rendering with Vis.js
+            lastNetworkData = data.network;
+            isShowingUncontained = false;
+            document.getElementById('network-toggle-text').innerText = "View Uncontained";
+            renderNetworkGraph();
+            
+            // Update SOC Log
+            const tbody = document.getElementById('soc-log-body');
+            const row = document.createElement('tr');
+            row.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+            row.innerHTML = `
+                <td style="padding: 8px;">${new Date().toLocaleTimeString()}</td>
+                <td style="padding: 8px; color: ${data.maxThreat > 50 ? 'var(--danger)' : 'var(--neon-green)'}">${data.severity}</td>
+                <td style="padding: 8px;">${data.actionText}</td>
+            `;
+            tbody.prepend(row);
+            if(tbody.children.length > 10) tbody.removeChild(tbody.lastChild);
+            
+            // Real-Time Chart Update
+            if(threatVolumeChart) {
+                let currentData = threatVolumeChart.data.datasets[0].data;
+                let newLabel = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                
+                threatVolumeChart.data.labels.push(newLabel);
+                currentData.push(data.maxThreat);
+                
+                if (currentData.length > 8) {
+                    currentData.shift();
+                    threatVolumeChart.data.labels.shift();
+                }
+                threatVolumeChart.update();
+            }
+        }
+    </script>
+</body>
+</html>
