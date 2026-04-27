@@ -70,3 +70,21 @@ The system is designed to act as a **Security Operations Center (SOC)** for digi
 Navigate to the project directory and start the server:
 ```bash
 python3 server.py
+---
+
+## 🎯 Project Objectives
+* **Simulation-Driven Learning:** To demonstrate how distributed systems and AI models collaborate in a security environment.
+* **Explainable Intelligence:** Moving beyond "black box" detection by providing clear behavioral reasons for every flag.
+* **System Design:** Showcasing a complete data lifecycle from ingestion (JSON/Stream) to processing (Python) to storage (SQLite) to visualization (JS).
+
+## 📊 Conclusion
+By integrating automated data ingestion with predictive modeling and real-time network visualization, this platform provides a comprehensive toolkit for modern cybersecurity research to defend against the evolving landscape of digital misinformation.
+
+---
+
+## 👨‍💻 Author
+**Shonit Sequeira**
+*Computer Engineering Student | Fr. Conceicao Rodrigues College of Engineering*
+
+## 📄 License
+This project is for educational and research purposes. Distributed under the MIT License.
